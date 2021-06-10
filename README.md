@@ -47,7 +47,7 @@ See Github's [adding a personal access token guide](https://docs.github.com/en/g
 
 ## Running locally:
 
-This project is managed with pipenv so you'll need that installed first.
+This project is managed with pipenv so you'll need that installed first. You will also need a `.env` file setup from the above section.
 
 Install project dependencies and enter virtualenv shell:
 
@@ -62,8 +62,18 @@ On the left of the status bar, you should see something like:
 
 ![status bar](assets/virtualenv-vscode.png)
 
-Run the script:
+Run the script (full run):
 
 ```
 > python script.py
 ```
+
+I'd recommend trying the script in `--dry-run` first to see _what_ repositories it will be modifying.
+
+```
+> python script.py --dry-run
+```
+
+## Usage:
+
+![program usage](assets/usage.png)

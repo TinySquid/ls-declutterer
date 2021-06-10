@@ -28,3 +28,26 @@ Using Github's GraphQL API, we can fetch a list of a user's repositories and mod
 - Iteratively rename and archive each repository.
 
 To make the script more intelligent, we can create a progress file to track the state for each repository we are modifying. Then, if errors happen, we can resume where we left off at a later time.
+
+## Running locally:
+
+This project is managed with pipenv so you'll need that installed first.
+
+Install project dependencies and enter virtualenv shell:
+
+```
+> pipenv install
+> pipenv shell
+```
+
+On vscode make sure you are using the virtualenv interpreter (`ctrl + shift + p` -> `Python: Select Interpreter`)
+
+On the left of the status bar, you should see something like:
+
+![status bar](assets/virtualenv-vscode.png)
+
+Run the script:
+
+```
+> python script.py
+```

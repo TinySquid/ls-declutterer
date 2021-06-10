@@ -1,13 +1,10 @@
 import os
 import sys
+import argparse
 from dotenv import load_dotenv
 
+
 load_dotenv()
-
-
-def print_usage():
-    print("usage: {0} [--dry-run] [--resume] [--undo]".format(sys.argv[0]))
-    exit()
 
 
 def missing_vars():
@@ -34,8 +31,15 @@ repoPrefix = os.getenv("REPO_PREFIX", None)
 if accessToken is None or repoPrefix is None:
     missing_vars()
 
-# Prompt on full run
+# Setup command parser
+parser = argparse.ArgumentParser()
+groupFlags = parser.add_mutually_exclusive_group()
+groupFlags.add_argument("--dry-run", help="assemble a list of repositories to be modified", action="store_true")
+groupFlags.add_argument("--resume", help="continue from previous run", action="store_true")
+groupFlags.add_argument("--undo", help="reverses repo modifications", action="store_true")
+
+args = parser.parse_args()
+
+# Full run prompt
 if len(sys.argv) == 1:
     prerun_warning()
-
-print_usage()

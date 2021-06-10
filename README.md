@@ -29,6 +29,22 @@ Using Github's GraphQL API, we can fetch a list of a user's repositories and mod
 
 To make the script more intelligent, we can create a progress file to track the state for each repository we are modifying. Then, if errors happen, we can resume where we left off at a later time.
 
+Also, there should be a way to undo any work performed by the script, so a simple commandline arg interpreter will be needed.
+
+## Env vars:
+
+The script requires a `.env` file with some variables, so copy the `.env.example` file as a template:
+
+```
+> cp .env.example .env
+```
+
+- `ACCESS_TOKEN` - This is a personal access token with a `public_repo` scope that you will need from Github.
+
+See Github's [adding a personal access token guide](https://docs.github.com/en/github/authenticating-to-github/keeping-your-account-and-data-secure/creating-a-personal-access-token) for instructions.
+
+- `REPO_PREFIX` - A prefix for the renamer to use. I use `zls` so I know its from LambdaSchool and `z` as first char so it pushes all the repos to the bottom of the list, but you can use anything.
+
 ## Running locally:
 
 This project is managed with pipenv so you'll need that installed first.

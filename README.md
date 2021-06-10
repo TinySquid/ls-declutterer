@@ -39,6 +39,8 @@ The script requires a `.env` file with some variables, so copy the `.env.example
 > cp .env.example .env
 ```
 
+- `GITHUB_USER` - This needs to be your login username. Used to match repository ownership in cases where you may have been a TL and had access to other student's repositories.
+
 - `ACCESS_TOKEN` - This is a personal access token with a `public_repo` scope that you will need from Github.
 
 See Github's [adding a personal access token guide](https://docs.github.com/en/github/authenticating-to-github/keeping-your-account-and-data-secure/creating-a-personal-access-token) for instructions.
@@ -73,6 +75,8 @@ I'd recommend trying the script in `--dry-run` first to see _what_ repositories 
 ```
 > python script.py --dry-run
 ```
+
+It will output a file to the `/data` directory called `dry-run.json`. From there, you can verify that you own the repositories and that the parent repository owner is LambdaSchool. With all the checks implemented in the script, I don't believe there will be issues, but it's best to be safe before mass modification.
 
 ## Usage:
 

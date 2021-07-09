@@ -20,7 +20,8 @@ def generate_list():
     print("List generation starting...\n")
 
     transport = AIOHTTPTransport(
-        url="https://api.github.com/graphql", headers={"Authorization": "bearer {0}".format(accessToken)}
+        url="https://api.github.com/graphql",
+        headers={"Authorization": f"bearer {personal_access_token}"},
     )
 
     client = Client(transport=transport)
@@ -61,14 +62,17 @@ def generate_list():
         result = client.execute(query, variable_values=params)
 
         params["cursor"] = result["viewer"]["repositories"]["pageInfo"]["endCursor"]
-        additionalRepositories = result["viewer"]["repositories"]["nodes"]
+        additional_repositories = result["viewer"]["repositories"]["nodes"]
 
-        if len(additionalRepositories) == 0 or params["cursor"] == "null":
+        if len(additional_repositories) == 0 or params["cursor"] == "null":
             break
 
         # Add only personal LambdaSchool forks
-        for repo in additionalRepositories:
-            if repo["parent"]["owner"]["id"] == lambdaSchoolUser and repo["owner"]["login"] == githubUser:
+        for repo in additional_repositories:
+            if (
+                repo["parent"]["owner"]["id"] == lambda_school_org_id
+                and repo["owner"]["login"] == github_username
+            ):
                 repositories.append(repo)
 
     # Write list to file
@@ -80,9 +84,7 @@ def generate_list():
         print(f"Repo: {repo['name']}")
 
     print(
-        "\nList generation complete. Verify repositories in the list stored at: {0}".format(
-            os.getcwd() + "/data/list.json"
-        )
+        f"\nList generation complete. Verify repositories in the list stored at: {os.getcwd()}/data/list.json"
     )
 
 
@@ -100,20 +102,26 @@ def main_start():
     print("")
 
 
-githubUser = os.getenv("GITHUB_USER", None)
-accessToken = os.getenv("ACCESS_TOKEN", None)
-repoPrefix = os.getenv("REPO_PREFIX", None)
-lambdaSchoolUser = "MDEyOk9yZ2FuaXphdGlvbjI0NzgwMTE0"  # Lambda org ID
+github_username = os.getenv("GITHUB_USER", None)
+personal_access_token = os.getenv("ACCESS_TOKEN", None)
+repo_prefix = os.getenv("REPO_PREFIX", None)
+lambda_school_org_id = "MDEyOk9yZ2FuaXphdGlvbjI0NzgwMTE0"  # Lambda org ID
 
-if accessToken is None or repoPrefix is None or githubUser is None:
+if personal_access_token is None or repo_prefix is None or github_username is None:
     missing_vars()
 
 # Setup command parser
 parser = argparse.ArgumentParser()
-groupFlags = parser.add_mutually_exclusive_group()
-groupFlags.add_argument("--gen-list", help="assemble a list of repositories to be modified", action="store_true")
-groupFlags.add_argument("--resume", help="continue from previous run", action="store_true")
-groupFlags.add_argument("--revert", help="reverses modifications", action="store_true")
+group_flags = parser.add_mutually_exclusive_group()
+group_flags.add_argument(
+    "--gen-list",
+    help="assemble a list of repositories to be modified",
+    action="store_true",
+)
+group_flags.add_argument(
+    "--resume", help="continue from previous run", action="store_true"
+)
+group_flags.add_argument("--revert", help="reverses modifications", action="store_true")
 
 args = parser.parse_args()
 

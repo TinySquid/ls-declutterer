@@ -86,6 +86,20 @@ def generate_list():
     )
 
 
+def resume_work():
+    print("Resuming work from modified.json...\n")
+    print("Done.")
+
+
+def revert_work():
+    print("Reverting changes from modified.json...\n")
+    print("Done.")
+
+
+def main_start():
+    print("")
+
+
 githubUser = os.getenv("GITHUB_USER", None)
 accessToken = os.getenv("ACCESS_TOKEN", None)
 repoPrefix = os.getenv("REPO_PREFIX", None)
@@ -103,7 +117,40 @@ groupFlags.add_argument("--revert", help="reverses modifications", action="store
 
 args = parser.parse_args()
 
+# Run chosen methods
 
-# Only create repo list
 if args.gen_list:
+    """
+    - Check pre-existing list.json, prompt for overwrite.
+    * overwrite:
+    - Generate repository list.
+    * don't overwrite:
+    - exit.
+    """
     generate_list()
+
+elif args.resume:
+    """ """
+    resume_work()
+
+elif args.revert:
+    """
+    - Check pre-existing modified.json
+    * file exists:
+    - Revert modifications to repositores from the modified.json list.
+    * file does not exist:
+    - inform user.
+    """
+    revert_work()
+
+else:
+    """
+    Full execution
+    - Check for pre-existing modified.json, run resume_work() if found.
+    * no modified.json:
+    - Check for pre-existing list.json, running generate_list() if missing.
+    - Wait for user input (verification).
+    - Create modified.json.
+    - Modify repositories, updating modified.json in sync.
+    """
+    main_start()

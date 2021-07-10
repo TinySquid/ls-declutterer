@@ -109,6 +109,8 @@ def generate_list():
     for repo in repositories:
         print(f"Repo: {repo['name']}")
 
+    print(f"Total repositories found: {len(repositories)}")
+
     print(
         f"\nList generation complete. Verify repositories in the list stored at: {os.getcwd()}/data/list.json"
     )
@@ -143,6 +145,8 @@ def generate_modified_list():
         mod_file.write(json.dumps(modification_list, indent=4))
 
     print("Done.")
+
+    print(f"Total repositories to modify: {len(modification_list)}")
 
 
 def resume_work():

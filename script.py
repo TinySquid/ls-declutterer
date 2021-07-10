@@ -214,6 +214,19 @@ else:
     - Modify repositories, updating modified.json in sync.
     """
     if os.path.exists(f"{os.getcwd()}/data/modified.json"):
-        resume_work()
+        resume = prompt("modified.json file found. Resume from there? (y/n): ")
+
+        if not resume:
+            warn_accept = prompt(
+                "Overwriting modified.json is NOT recommended, only go forward if you know what you are doing. Continue? (y/n): "
+            )
+
+            if warn_accept:
+                main_start()
+            else:
+                exit()
+
+        else:
+            resume_work()
     else:
         main_start()

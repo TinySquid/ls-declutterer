@@ -10,8 +10,12 @@ from gql.transport.aiohttp import AIOHTTPTransport
 
 load_dotenv()
 
+github_username = os.getenv("GITHUB_USER", None)
+personal_access_token = os.getenv("ACCESS_TOKEN", None)
+repo_prefix = os.getenv("REPO_PREFIX", None)
+lambda_school_org_id = "MDEyOk9yZ2FuaXphdGlvbjI0NzgwMTE0"  # Lambda org ID
 
-def missing_vars():
+if personal_access_token is None or repo_prefix is None or github_username is None:
     print("Missing required .env vars. See README.md for instructions.")
     exit()
 
@@ -21,15 +25,25 @@ def prompt(message):
     choice = input(message).split(" ")[0]
 
     if choice != "y":
-        exit()
+        return False
+
+    return True
 
 
 def generate_list():
+    """Creates a list.json file to store repositories to be modified."""
+
+    print("List generation starting...")
+
     # Pre-check
     if os.path.exists(f"{os.getcwd()}/data/list.json"):
-        prompt("Found previously generated list, overwrite? (y/n): ")
+        overwrite = prompt("Found previously generated list, overwrite? (y/n): ")
 
-    print("List generation starting...\n")
+        if not overwrite:
+            print("List generation skipped.")
+            return
+
+    print("...")
 
     transport = AIOHTTPTransport(
         url="https://api.github.com/graphql",
@@ -100,6 +114,37 @@ def generate_list():
     )
 
 
+def generate_modified_list():
+    """Creates a modified.json file to track changes made to repositories from list.json."""
+
+    print("Creating modification progress file...", end=" ")
+
+    modification_list = []
+
+    # Build modification array from list.json.
+    with open("./data/list.json", "r") as list_file:
+        json_list = json.load(list_file)
+
+        for repo in json_list:
+            # Format:
+            # { id: "hash", oldName: "Hooks-III", newName: "zls-Hooks-III", renamed: false, archived, false }
+            repo_entry = {
+                "id": repo["id"],
+                "old_name": repo["name"],
+                "new_name": f"{repo_prefix}{repo['name']}",
+                "renamed": False,
+                "archived": False,
+            }
+
+            modification_list.append(repo_entry)
+
+    # Dump modification_list to json file.
+    with open("./data/modified.json", "w") as mod_file:
+        mod_file.write(json.dumps(modification_list, indent=4))
+
+    print("Done.")
+
+
 def resume_work():
     print("Resuming work from modified.json...\n")
     print("Done.")
@@ -112,16 +157,14 @@ def revert_work():
 
 def main_start():
     generate_list()
-    prompt("Continue? (y/n): ")
 
+    move_forward = prompt("Continue with modification? (y/n): ")
 
-github_username = os.getenv("GITHUB_USER", None)
-personal_access_token = os.getenv("ACCESS_TOKEN", None)
-repo_prefix = os.getenv("REPO_PREFIX", None)
-lambda_school_org_id = "MDEyOk9yZ2FuaXphdGlvbjI0NzgwMTE0"  # Lambda org ID
+    if not move_forward:
+        exit()
 
-if personal_access_token is None or repo_prefix is None or github_username is None:
-    missing_vars()
+    generate_modified_list()
+
 
 # Setup command parser
 parser = argparse.ArgumentParser()

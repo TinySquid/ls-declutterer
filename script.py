@@ -135,7 +135,14 @@ if args.gen_list:
     * don't overwrite:
     - exit.
     """
-    generate_list()
+    if os.path.exists(f"{os.getcwd()}/data/list.json"):
+        choice = input("Found previously generated list, overwrite? (y/n): ").split(
+            " "
+        )[0]
+
+        if choice == "y":
+            generate_list()
+    exit()
 
 elif args.resume:
     """ """

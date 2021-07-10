@@ -17,6 +17,15 @@ def missing_vars():
 
 
 def generate_list():
+    # Pre-check
+    if os.path.exists(f"{os.getcwd()}/data/list.json"):
+        choice = input("Found previously generated list, overwrite? (y/n): ").split(
+            " "
+        )[0]
+
+        if choice != "y":
+            exit()
+
     print("List generation starting...\n")
 
     transport = AIOHTTPTransport(
@@ -99,7 +108,7 @@ def revert_work():
 
 
 def main_start():
-    print("")
+    generate_list()
 
 
 github_username = os.getenv("GITHUB_USER", None)
@@ -129,20 +138,9 @@ args = parser.parse_args()
 
 if args.gen_list:
     """
-    - Check pre-existing list.json, prompt for overwrite.
-    * overwrite:
-    - Generate repository list.
-    * don't overwrite:
-    - exit.
+    create / overwrite list.json
     """
-    if os.path.exists(f"{os.getcwd()}/data/list.json"):
-        choice = input("Found previously generated list, overwrite? (y/n): ").split(
-            " "
-        )[0]
-
-        if choice == "y":
-            generate_list()
-    exit()
+    generate_list()
 
 elif args.resume:
     """ """
@@ -163,9 +161,12 @@ else:
     Full execution
     - Check for pre-existing modified.json, run resume_work() if found.
     * no modified.json:
-    - Check for pre-existing list.json, running generate_list() if missing.
+    - generate_list().
     - Wait for user input (verification).
     - Create modified.json.
     - Modify repositories, updating modified.json in sync.
     """
-    main_start()
+    if os.path.exists(f"{os.getcwd()}/data/modified.json"):
+        resume_work()
+    else:
+        main_start()

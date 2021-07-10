@@ -16,15 +16,18 @@ def missing_vars():
     exit()
 
 
+def prompt(message):
+    """Creates a simple y/n prompt with custom message"""
+    choice = input(message).split(" ")[0]
+
+    if choice != "y":
+        exit()
+
+
 def generate_list():
     # Pre-check
     if os.path.exists(f"{os.getcwd()}/data/list.json"):
-        choice = input("Found previously generated list, overwrite? (y/n): ").split(
-            " "
-        )[0]
-
-        if choice != "y":
-            exit()
+        prompt("Found previously generated list, overwrite? (y/n): ")
 
     print("List generation starting...\n")
 
@@ -109,6 +112,7 @@ def revert_work():
 
 def main_start():
     generate_list()
+    prompt("Continue? (y/n): ")
 
 
 github_username = os.getenv("GITHUB_USER", None)

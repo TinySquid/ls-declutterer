@@ -1,5 +1,4 @@
 import os
-import sys
 import argparse
 import json
 
@@ -13,7 +12,7 @@ load_dotenv()
 github_username = os.getenv("GITHUB_USER", None)
 personal_access_token = os.getenv("ACCESS_TOKEN", None)
 repo_prefix = os.getenv("REPO_PREFIX", None)
-lambda_school_org_id = "MDEyOk9yZ2FuaXphdGlvbjI0NzgwMTE0"  # Lambda org ID
+lambda_school_org_id = "MDEyOk9yZ2FuaXphdGlvbjI0NzgwMTE0"
 
 if personal_access_token is None or repo_prefix is None or github_username is None:
     print("Missing required .env vars. See README.md for instructions.")
@@ -21,7 +20,7 @@ if personal_access_token is None or repo_prefix is None or github_username is No
 
 
 def prompt(message):
-    """Creates a simple y/n prompt with custom message"""
+    """Creates a simple y/n prompt with custom message. Returns boolean value."""
     choice = input(message).split(" ")[0]
 
     if choice != "y":
@@ -31,7 +30,7 @@ def prompt(message):
 
 
 def generate_list():
-    """Creates a list.json file to store repositories to be modified."""
+    """Creates a list.json file to store repositories to be modified for a given GITHUB_USER account."""
 
     print("List generation starting...")
 
@@ -45,6 +44,7 @@ def generate_list():
 
     print("...")
 
+    # gql setup
     transport = AIOHTTPTransport(
         url="https://api.github.com/graphql",
         headers={"Authorization": f"bearer {personal_access_token}"},
@@ -83,7 +83,7 @@ def generate_list():
     params = {"cursor": None}
     repositories = []
 
-    # Build list of repositories
+    # Build list of repositories from query results
     while True:
         result = client.execute(query, variable_values=params)
 
@@ -100,19 +100,16 @@ def generate_list():
                 and repo["owner"]["login"] == github_username
             ):
                 repositories.append(repo)
+                print(f"Repo found: {repo['name']}")
 
-    # Write list to file
+    # Save list in JSON format
     with open("./data/list.json", "w") as file:
         file.write(json.dumps(repositories, indent=4))
 
-    # Print repo names
-    for repo in repositories:
-        print(f"Repo: {repo['name']}")
-
-    print(f"Total repositories found: {len(repositories)}")
+    print(f"\nTotal repositories found: {len(repositories)}\n")
 
     print(
-        f"\nList generation complete. Verify repositories in the list stored at: {os.getcwd()}/data/list.json"
+        f"List generation complete. Verify and make any necessary changes to repositories in the list stored at: {os.getcwd()}/data/list.json"
     )
 
 
@@ -148,14 +145,18 @@ def generate_modified_list():
 
     print(f"Total repositories to modify: {len(modification_list)}")
 
+    resume_work()
+
 
 def resume_work():
-    print("Resuming work from modified.json...\n")
+    print("Using modified.json to edit repositories...")
+
     print("Done.")
 
 
 def revert_work():
-    print("Reverting changes from modified.json...\n")
+    print("Using modified.json to revert changes...")
+
     print("Done.")
 
 
@@ -188,47 +189,33 @@ args = parser.parse_args()
 # Run chosen methods
 
 if args.gen_list:
-    """
-    create / overwrite list.json
-    """
+    # Create / overwrite list.json.
     generate_list()
 
 elif args.resume:
-    """ """
-    resume_work()
+    # Work from modified.json.
+    if os.path.exists(f"{os.getcwd()}/data/modified.json"):
+        resume_work()
+    else:
+        print("modified.json file not found. Nothing to resume.")
 
 elif args.revert:
-    """
-    - Check pre-existing modified.json
-    * file exists:
-    - Revert modifications to repositores from the modified.json list.
-    * file does not exist:
-    - inform user.
-    """
-    revert_work()
+    if os.path.exists(f"{os.getcwd()}/data/modified.json"):
+        revert_work()
+    else:
+        print("modified.json file not found. Nothing to revert.")
 
 else:
-    """
-    Full execution
-    - Check for pre-existing modified.json, run resume_work() if found.
-    * no modified.json:
-    - generate_list().
-    - Wait for user input (verification).
-    - Create modified.json.
-    - Modify repositories, updating modified.json in sync.
-    """
     if os.path.exists(f"{os.getcwd()}/data/modified.json"):
         resume = prompt("modified.json file found. Resume from there? (y/n): ")
 
         if not resume:
             warn_accept = prompt(
-                "Overwriting modified.json is NOT recommended, only go forward if you know what you are doing. Continue? (y/n): "
+                "Overwriting modified.json is NOT recommended, only go forward if you know what you are doing.\nContinue? (y/n): "
             )
 
             if warn_accept:
                 main_start()
-            else:
-                exit()
 
         else:
             resume_work()

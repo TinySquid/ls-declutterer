@@ -14,10 +14,10 @@
 
 Rename and archive all of them so:
 
-- Existing work is still available.
+- Existing work is still available for reference.
 - No more notifications from alerts.
 - Repos become read-only.
-- Repos show up at the bottom of lists with prefixing on places like Netlify, Heroku, etc.
+- Repos prefixed, so on places like Netlify and Heroku they will appear at the bottom of the list.
 
 ## Process:
 
@@ -27,11 +27,9 @@ Using Github's GraphQL API, we can fetch a list of a user's repositories and mod
 - Build a list to store references to repositories where the fork parent is from Lambda School.
 - Iteratively rename and archive each repository.
 
-To make the script more intelligent, we can create a progress file to track the state for each repository we are modifying. Then, if errors happen, we can resume where we left off at a later time.
+To make the script more intelligent, I made a progress system that uses a file to track the state for each repository it modifies. Then, if errors happen, it can resume where it left off at a later time, or be used to revert changes.
 
-Also, there should be a way to undo any work performed by the script, so a simple commandline arg interpreter will be needed.
-
-## Env vars:
+## Env:
 
 The script requires a `.env` file with some variables, so copy the `.env.example` file as a template:
 
@@ -39,7 +37,7 @@ The script requires a `.env` file with some variables, so copy the `.env.example
 > cp .env.example .env
 ```
 
-- `GITHUB_USER` - This needs to be your login username. Used to match repository ownership in cases where you may have been a TL and had access to other student's repositories.
+- `GITHUB_USER` - This needs to be your login username. Used to match repository ownership when fetching.
 
 - `ACCESS_TOKEN` - This is a personal access token with a `public_repo` scope that you will need from Github.
 
@@ -49,9 +47,15 @@ See Github's [adding a personal access token guide](https://docs.github.com/en/g
 
 ## Running locally:
 
-This project is managed with pipenv so you'll need that installed first. You will also need a `.env` file setup from the above section.
+This project is managed with pipenv so you'll need that installed first.
 
-Install project dependencies and enter virtualenv shell:
+```
+> pip install pipenv
+```
+
+You will also need a `.env` file setup from the above section.
+
+Install project dependencies and enter the virtualenv shell using the commands:
 
 ```
 > pipenv install
@@ -64,20 +68,34 @@ On the left of the status bar, you should see something like:
 
 ![status bar](assets/virtualenv-vscode.png)
 
-Run the script (full run):
+## Commands:
+
+![program usage](assets/usage.png)
+
+A full run of the script (no arguments) will go through the whole process of generating the list of repositories, and then the modified list, and then the actual modification steps.
 
 ```
 > python script.py
 ```
 
-I'd recommend trying the script in `--dry-run` first to see _what_ repositories it will be modifying.
+I'd recommend running the script with `--gen-list` first to see _what_ repositories it will be modifying, so you can make changes (delete entries) if necessary. Running in full mode will pause and wait for input after generating the list anyways but I prefer the 2 step process.
 
 ```
-> python script.py --dry-run
+> python script.py --gen-list
 ```
 
-It will output a file to the `/data` directory called `dry-run.json`. From there, you can verify that you own the repositories and that the parent repository owner is LambdaSchool. With all the checks implemented in the script, I don't believe there will be issues, but it's best to be safe before mass modification.
+It will output a file to the `/data` directory called `list.json`. From there, you can verify that you own the repositories and that the parent repository owner is LambdaSchool. With all the checks implemented in the script, I don't believe there will be issues, but it's best to be safe before mass modification.
 
-## Usage:
+If you have a `list.json` setup then you can run the script with `--resume` to move on to the modification steps. The prompts are straightforward and if there is a network failure or api issue, it will _always_ save the changes it has made to `data/modified.json` and you can resume or revert with that.
 
-![program usage](assets/usage.png)
+```
+> python script.py --resume
+```
+
+You can easily undo changes with the `--revert` argument and it will use `modified.json` to restore the listed repositories to their pre-modification state.
+
+```
+> python script.py --revert
+```
+
+The main thing is DO NOT DELETE `modified.json` as that is the only way for the script to know what repositories to revert or resume work.

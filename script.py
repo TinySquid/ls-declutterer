@@ -22,7 +22,7 @@ if GITHUB_USERNAME is None or PERSONAL_ACCESS_TOKEN is None or REPO_PREFIX is No
     exit()
 
 # GraphQL queries
-fetch_repositories_query = gql(
+fetch_repositories = gql(
     """
     query($cursor: String) {
         viewer {
@@ -139,7 +139,7 @@ def generate_list():
     params = {"cursor": None}
 
     while True:
-        result = client.execute(fetch_repositories_query, variable_values=params)
+        result = client.execute(fetch_repositories, variable_values=params)
 
         params["cursor"] = result["viewer"]["repositories"]["pageInfo"]["endCursor"]
         additional_repositories = result["viewer"]["repositories"]["nodes"]
@@ -255,16 +255,22 @@ def resume_work():
 
     repo_list = read_json_file("./data/modified.json")
 
-    for repo in repo_list:
-        if not repo["renamed"]:
-            repo["renamed"] = rename_repo(repo["id"], repo["new_name"])
-            sleep(0.05)
+    try:
+        for repo in repo_list:
+            if not repo["renamed"]:
+                repo["renamed"] = rename_repo(repo["id"], repo["new_name"])
+                sleep(0.05)
 
-        if not repo["archived"] and repo["renamed"]:
-            repo["archived"] = archive_repo(repo["id"])
-            sleep(0.05)
-
-    write_json_file("./data/modified.json", repo_list)
+            if not repo["archived"] and repo["renamed"]:
+                repo["archived"] = archive_repo(repo["id"])
+                sleep(0.05)
+    except Exception as e:
+        print(
+            f"Encountered an error, any changes have been saved to modified.json. ({e.message})"
+        )
+        exit()
+    finally:
+        write_json_file("./data/modified.json", repo_list)
 
     print("Done.")
 
@@ -279,16 +285,22 @@ def revert_work():
 
     repo_list = read_json_file("./data/modified.json")
 
-    for repo in repo_list:
-        if repo["archived"]:
-            # A repository must be un-archived before changing its name
-            repo["archived"] = not unarchive_repo(repo["id"])
+    try:
+        for repo in repo_list:
+            if repo["archived"]:
+                # A repository must be un-archived before changing its name
+                repo["archived"] = not unarchive_repo(repo["id"])
+                sleep(0.05)
+
+            repo["renamed"] = not rename_repo(repo["id"], repo["old_name"])
             sleep(0.05)
-
-        repo["renamed"] = not rename_repo(repo["id"], repo["old_name"])
-        sleep(0.05)
-
-    write_json_file("./data/modified.json", repo_list)
+    except Exception as e:
+        print(
+            f"Encountered an error, any changes have been saved to modified.json. ({e.message})"
+        )
+        exit()
+    finally:
+        write_json_file("./data/modified.json", repo_list)
 
     print("Done.")
 

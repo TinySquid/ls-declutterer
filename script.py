@@ -4,7 +4,6 @@ import json
 
 from time import sleep
 from dotenv import load_dotenv
-from distutils.util import strtobool
 
 from gql import Client, gql
 from gql.transport.aiohttp import AIOHTTPTransport
@@ -15,8 +14,7 @@ load_dotenv()
 GITHUB_USERNAME = os.getenv("GITHUB_USER", None)
 PERSONAL_ACCESS_TOKEN = os.getenv("ACCESS_TOKEN", None)
 REPO_PREFIX = os.getenv("REPO_PREFIX", None)
-SKIP_RENAME_STEP = bool(strtobool(os.getenv("SKIP_RENAME_STEP", "False")))
-SKIP_ARCHIVE_STEP = bool(strtobool(os.getenv("SKIP_ARCHIVE_STEP", "False")))
+
 LAMBDASCHOOL_ORG_ID = "MDEyOk9yZ2FuaXphdGlvbjI0NzgwMTE0"
 
 if GITHUB_USERNAME is None or PERSONAL_ACCESS_TOKEN is None or REPO_PREFIX is None:
@@ -198,125 +196,101 @@ def generate_modified_list():
 
     print(f"Total repositories to modify: {len(modification_list)}")
 
-    resume_work()
 
-
-def dummy_check():
-    if SKIP_RENAME_STEP and SKIP_ARCHIVE_STEP:
-        print(
-            "You've set both steps to be skipped in the .env file. Nothing to do here..."
-        )
-        exit()
-
-
-def rename_repo(repo):
-    """Renames a passed in repository. See generate_modified_list()
-    for repo param shape."""
-
-    if SKIP_RENAME_STEP or repo["renamed"]:
-        print(f"Skipping {repo['id']}")
-    else:
-        result = client.execute(
-            rename_mutation,
-            variable_values={"repository_id": repo["id"], "name": repo["new_name"]},
-        )
-
-        if result["updateRepository"]["repository"]["name"] == repo["new_name"]:
-            print(f"Renamed: {repo['id']}")
-            return True
-        else:
-            print(f"Update failed for repository with id: {repo['id']} (rename).")
-            return False
-
-
-def revert_repo_rename(repo):
-    """Renames a passed in repository to its original name. See generate_modified_list()
-    for repo param shape."""
+def rename_repo(id, name):
+    """Executes a rename mutation for a repository from param id. Success indicated by return value."""
 
     result = client.execute(
         rename_mutation,
-        variable_values={"repository_id": repo["id"], "name": repo["old_name"]},
+        variable_values={"repository_id": id, "name": name},
     )
 
-    if result["updateRepository"]["repository"]["name"] == repo["old_name"]:
-        print(f"Renamed: {repo['id']}")
+    if result["updateRepository"]["repository"]["name"] == name:
+        print(f"Renamed: {id}")
         return True
     else:
-        print(f"Update failed for repository with id: {repo['id']} (rename).")
+        print(f"Update failed for repository with id: {id} (rename).")
         return False
 
 
-def archive_repo(repo):
-    """Archives a passed in repository. See generate_modified_list()
-    for repo param shape. Returns True on success, False on failure."""
+def archive_repo(id):
+    """Archives a repository from param id. Success indicated by return value."""
 
-    if SKIP_ARCHIVE_STEP or repo["archived"]:
-        print(f"Skipping {repo['id']}")
+    result = client.execute(
+        archive_mutation,
+        variable_values={"repository_id": id},
+    )
+
+    if result["archiveRepository"]["repository"]["isArchived"] == True:
+        print(f"Archived: {id}")
+        return True
     else:
-        result = client.execute(
-            archive_mutation,
-            variable_values={"repository_id": repo["id"]},
-        )
-
-        if result["archiveRepository"]["repository"]["isArchived"] == True:
-            print(f"Archived: {repo['id']}")
-            return True
-        else:
-            print(f"Update failed for repository with id: {repo['id']} (archive).")
-            return False
+        print(f"Update failed for repository with id: {id} (archive).")
+        return False
 
 
-def unarchive_repo(repo):
-    """Unarchives a passed in repository. See generate_modified_list()
-    for repo param shape. Returns True on success, False on failure."""
+def unarchive_repo(id):
+    """Unarchives a repository from param id. Success indicated by return value."""
 
     result = client.execute(
         unarchive_mutation,
-        variable_values={"repository_id": repo["id"]},
+        variable_values={"repository_id": id},
     )
 
     if result["unarchiveRepository"]["repository"]["isArchived"] == False:
-        print(f"Unarchived: {repo['id']}")
+        print(f"Unarchived: {id}")
         return True
     else:
-        print(f"Update failed for repository with id: {repo['id']} (archive).")
+        print(f"Update failed for repository with id: {id} (unarchive).")
         return False
 
 
-def revert_repo_changes(repo):
-    """Handles reverting modifications to a repository. See generate_modified_list()
-    for repo param shape."""
-    if repo["archived"]:
-        # A repository must be un-archived before changing its name
-        unarchive_repo(repo)
-    revert_repo_rename(repo)
+def resume_work():
+    """
+    Performs the rename/archive steps to every repository listed in modified.json.
+    Overwrites modified.json with resulting changes from execution.
+    """
 
-
-def resume_work(revert=False):
-    """Performs the rename/archive steps to every repository listed in modified.json."""
     print("Using modified.json to edit repositories...")
 
     repo_list = read_json_file("./data/modified.json")
 
-    # Bruh
-    dummy_check()
-
-    # Rename and archive iteratively (ignore previous work or global skip setting)
     for repo in repo_list:
-        repo["renamed"] = rename_repo(repo, revert)
-        sleep(0.05)
-        repo["archived"] = archive_repo(repo, revert)
-        sleep(0.05)
+        if not repo["renamed"]:
+            repo["renamed"] = rename_repo(repo["id"], repo["new_name"])
+            sleep(0.05)
 
-    # Save changes
+        if not repo["archived"] and repo["renamed"]:
+            repo["archived"] = archive_repo(repo["id"])
+            sleep(0.05)
+
     write_json_file("./data/modified.json", repo_list)
 
     print("Done.")
 
 
 def revert_work():
-    """Performs the work... in reverse :)"""
-    resume_work(revert=True)
+    """
+    Reverts changes to repositories in modified.json.
+    Overwrites modified.json with resulting changes from execution.
+    """
+
+    print("Using modified.json to revert repositories changes...")
+
+    repo_list = read_json_file("./data/modified.json")
+
+    for repo in repo_list:
+        if repo["archived"]:
+            # A repository must be un-archived before changing its name
+            repo["archived"] = not unarchive_repo(repo["id"])
+            sleep(0.05)
+
+        repo["renamed"] = not rename_repo(repo["id"], repo["old_name"])
+        sleep(0.05)
+
+    write_json_file("./data/modified.json", repo_list)
+
+    print("Done.")
 
 
 def main_start():
